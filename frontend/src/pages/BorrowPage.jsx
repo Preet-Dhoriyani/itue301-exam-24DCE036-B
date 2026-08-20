@@ -28,19 +28,22 @@ const BorrowPage = () => {
 
     try {
       let response;
+      const payload = { memberName, bookTitle, author: memberName, borrowDate, returnDate, status };
       try {
         response = await fetch('/api/v1/borrowings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ memberName, bookTitle, borrowDate, returnDate, status })
+          body: JSON.stringify(payload)
         });
       } catch (pErr) {
         response = await fetch('http://localhost:5000/api/v1/borrowings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ memberName, bookTitle, borrowDate, returnDate, status })
+          body: JSON.stringify(payload)
         });
       }
+
+
 
       let json = {};
       try {

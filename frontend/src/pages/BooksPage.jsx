@@ -31,6 +31,9 @@ const BooksPage = () => {
       if (json.success && Array.isArray(json.data)) {
         setData(json.data);
       } else {
+
+
+
         throw new Error(json.error || 'Failed to parse book data from API response');
       }
     } catch (err) {

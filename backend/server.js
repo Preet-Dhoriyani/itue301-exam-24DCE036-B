@@ -106,8 +106,15 @@ mongoose
 // Seed helper function
 async function autoSeedInitialData() {
   try {
+    // Update any existing "Unknown Author" records to "Harshil Desai"
+    await Book.updateMany(
+      { author: 'Unknown Author' },
+      { $set: { author: 'Harshil Desai', category: 'Computer Science' } }
+    );
+
     const bookCount = await Book.countDocuments();
     if (bookCount === 0) {
+
       const seededBooks = await Book.insertMany([
         {
           title: 'Clean Code: A Handbook of Agile Software Craftsmanship',
@@ -197,6 +204,10 @@ app.get('/api/v1/books', async (req, res, next) => {
     });
   }
 });
+
+
+
+
 
 // 2. POST /api/v1/books -> Create a new book
 app.post('/api/v1/books', async (req, res, next) => {
@@ -316,13 +327,19 @@ app.post('/api/v1/borrowings', async (req, res, next) => {
           if (!book) {
             book = await Book.create({
               title: bookTitle || bookId || 'Sample Book',
-              author: 'Unknown Author',
-              category: 'General',
+              author: memberName || req.body.author || 'Preet Dhoriyani',
+              category: req.body.category || 'Computer Science',
               isbn: 'ISBN-' + Date.now()
             });
+          } else if (memberName) {
+            // Dynamically update book author to the member name who borrowed the book
+            book.author = memberName;
+            await book.save();
           }
           validBookId = book._id;
         }
+
+
 
         const newBorrowing = await Borrowing.create({
           memberId: validMemberId,
@@ -346,11 +363,27 @@ app.post('/api/v1/borrowings', async (req, res, next) => {
       }
     }
 
-    // In-memory fallback create
+    // In-memory fallback create & update book author
+    const existingMemBook = inMemoryBooks.find(
+      (b) => b.title && b.title.toLowerCase() === (bookTitle || '').toLowerCase()
+    );
+    if (existingMemBook) {
+      if (memberName) existingMemBook.author = memberName;
+    } else if (bookTitle) {
+      inMemoryBooks.unshift({
+        _id: 'b_' + Date.now(),
+        title: bookTitle,
+        author: memberName || 'Preet Dhoriyani',
+        category: 'Computer Science',
+        isbn: 'ISBN-' + Date.now(),
+        available: true
+      });
+    }
+
     const newBorrowing = {
       _id: 'br_' + Date.now(),
       memberId: memberId || 'm1',
-      memberName: memberName || 'Student User',
+      memberName: memberName || 'Preet Dhoriyani',
       bookId: bookId || 'b1',
       bookTitle: bookTitle || 'Selected Book',
       borrowDate: borrowDate || new Date().toISOString().split('T')[0],
@@ -358,6 +391,7 @@ app.post('/api/v1/borrowings', async (req, res, next) => {
       status: status || 'borrowed'
     };
     inMemoryBorrowings.push(newBorrowing);
+
     return res.status(201).json({
       success: true,
       message: 'Borrowing record created successfully',
